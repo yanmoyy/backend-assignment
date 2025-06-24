@@ -5,6 +5,8 @@ import (
 	"log"
 	"net/http"
 	"time"
+
+	"github.com/yanmoyy/backend-assignment/internal/server"
 )
 
 func main() {
@@ -13,13 +15,13 @@ func main() {
 		ReadTimeout: 10 * time.Second,
 	}
 	// post request /issue
-	http.HandleFunc("POST /issue", handlerCreateIssue)
-	http.HandleFunc("GET /issues", handlerGetIssuesList)
-	http.HandleFunc("GET /issue/{id}", handelrGetIssue)
-	http.HandleFunc("PATCH /issue/{id}", handlerUpdateIssue)
+	http.HandleFunc("POST /issue", server.HandlerCreateIssue)
+	http.HandleFunc("GET /issues", server.HandlerGetIssuesList)
+	http.HandleFunc("GET /issue/{id}", server.HandelrGetIssue)
+	http.HandleFunc("PATCH /issue/{id}", server.HandlerUpdateIssue)
 
 	// reset
-	http.HandleFunc("POST /reset", handlerReset)
+	http.HandleFunc("POST /reset", server.HandlerReset)
 
 	fmt.Println("Server is running on port 8080")
 	log.Fatal(srv.ListenAndServe())

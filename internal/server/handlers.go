@@ -1,4 +1,4 @@
-package main
+package server
 
 import (
 	"encoding/json"
@@ -10,11 +10,11 @@ import (
 	"github.com/yanmoyy/backend-assignment/internal/db"
 )
 
-func handlerReset(w http.ResponseWriter, r *http.Request) {
+func HandlerReset(w http.ResponseWriter, r *http.Request) {
 	db.ClearIssues()
 }
 
-func handlerCreateIssue(w http.ResponseWriter, r *http.Request) {
+func HandlerCreateIssue(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	var p api.CreateIssueParams
 	err := decoder.Decode(&p)
@@ -49,7 +49,7 @@ func handlerCreateIssue(w http.ResponseWriter, r *http.Request) {
 	respondWithJSON(w, http.StatusCreated, issue)
 }
 
-func handlerGetIssuesList(w http.ResponseWriter, r *http.Request) {
+func HandlerGetIssuesList(w http.ResponseWriter, r *http.Request) {
 	// filter by status
 	q := r.URL.Query()
 	status := q.Get("status")
@@ -64,7 +64,7 @@ func handlerGetIssuesList(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func handelrGetIssue(w http.ResponseWriter, r *http.Request) {
+func HandelrGetIssue(w http.ResponseWriter, r *http.Request) {
 	idString := r.PathValue("id")
 	id, err := strconv.Atoi(idString)
 	if err != nil {
@@ -79,7 +79,7 @@ func handelrGetIssue(w http.ResponseWriter, r *http.Request) {
 	respondWithJSON(w, http.StatusOK, issue)
 }
 
-func handlerUpdateIssue(w http.ResponseWriter, r *http.Request) {
+func HandlerUpdateIssue(w http.ResponseWriter, r *http.Request) {
 	// idString := r.PathValue("id")
 	// id, err := strconv.ParseUint(idString, 10, 64)
 	// if err != nil {
