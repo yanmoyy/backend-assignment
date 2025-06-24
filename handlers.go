@@ -5,58 +5,18 @@ import (
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/yanmoyy/backend-assignment/internal/api"
+	"github.com/yanmoyy/backend-assignment/internal/client"
 )
 
-// hardcoded users for assignment
-var users = []User{
-	{ID: 1, Name: "김개발"},
-	{ID: 2, Name: "이디자인"},
-	{ID: 3, Name: "박기획"},
-}
-
-func getUserByID(id uint) *User {
-	for _, user := range users {
-		if user.ID == id {
-			return &user
-		}
-	}
-	return nil
-}
-
-var issues = []Issue{}
-
-func getNextIssueID() uint {
-	return uint(len(issues) + 1) // #nosec G115
-}
-
-func getIssueByID(id uint) *Issue {
-	for _, issue := range issues {
-		if issue.ID == id {
-			return &issue
-		}
-	}
-	return nil
-}
-
-func filterIssuesByStatus(issues []Issue, status string) []Issue {
-	filteredIssues := []Issue{}
-	for _, issue := range issues {
-		if issue.Status == status {
-			filteredIssues = append(filteredIssues, issue)
-		}
-	}
-	return filteredIssues
-}
-
-type CreateIssueParmas struct {
-	Title       string `json:"title"`       // required
-	Description string `json:"description"` // optional
-	UserId      *uint  `json:"userId"`      // optional
+func handlerReset(w http.ResponseWriter, r *http.Request) {
+	clearIssues()
 }
 
 func handlerCreateIssue(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
-	var p CreateIssueParmas
+	var p client.CreateIssueParams
 	err := decoder.Decode(&p)
 	if err != nil {
 		respondWithError(w, http.StatusBadRequest, "Invalid request body", err)
@@ -66,17 +26,17 @@ func handlerCreateIssue(w http.ResponseWriter, r *http.Request) {
 		respondWithError(w, http.StatusBadRequest, "Title is required", nil)
 		return
 	}
-	status := StatusPending
-	var user *User
+	status := api.StatusPending
+	var user *api.User
 	if p.UserId != nil {
-		status = StatusInProgress
+		status = api.StatusInProgress
 		user = getUserByID(*p.UserId)
 		if user == nil { // not found
 			respondWithError(w, http.StatusBadRequest, "User not found", nil)
 			return
 		}
 	}
-	issue := Issue{
+	issue := api.Issue{
 		ID:          getNextIssueID(),
 		Title:       p.Title,
 		Description: p.Description,
@@ -93,14 +53,14 @@ func handlerGetIssuesList(w http.ResponseWriter, r *http.Request) {
 	// filter by status
 	q := r.URL.Query()
 	status := q.Get("status")
-	var newIssues []Issue
+	var newIssues []api.Issue
 	if status == "" {
 		newIssues = issues
 	} else {
 		newIssues = filterIssuesByStatus(issues, status)
 	}
 	type response struct {
-		Issues []Issue `json:"issues"`
+		Issues []api.Issue `json:"issues"`
 	}
 	respondWithJSON(w, http.StatusOK, response{
 		Issues: newIssues,

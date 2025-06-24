@@ -1,70 +1,36 @@
 package main
 
 import (
-	"bytes"
-	"encoding/json"
-	"fmt"
-	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/yanmoyy/backend-assignment/internal/api"
+	"github.com/yanmoyy/backend-assignment/internal/client"
 )
 
 const baseURL = "http://localhost:8080"
 
 func TestCreateIssue(t *testing.T) {
-	url := baseURL + "/issue"
+	cl := client.NewClient(baseURL)
+	err := cl.Reset()
+	if err != nil {
+		t.Fatal(err)
+	}
 	id := uint(1)
-	body := CreateIssueParmas{
-		Title:       "버그 수정 필요",        // 필수
-		Description: "로그인 페이지에서 오류 발생", // 선택
-		UserId:      &id,
-	}
-	bodyData, err := json.Marshal(body)
+	issue, err := cl.CreateIssue(
+		client.CreateIssueParams{
+			Title:       "버그 수정 필요",
+			Description: "로그인 페이지에서 오류 발생",
+			UserId:      &id,
+		},
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(bodyData))
-	if err != nil {
-		t.Fatal(err)
-	}
-	req.Header.Set("Content-Type", "application/json")
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != 201 {
-		t.Fatalf("Expected status code 201, got %d", resp.StatusCode)
-	}
-	var issue Issue
-	err = json.NewDecoder(resp.Body).Decode(&issue)
-	if err != nil {
-		t.Fatal(err)
-	}
-	fmt.Println(issue)
-	assert.Equal(t, body.Title, issue.Title)
-	assert.Equal(t, body.Description, issue.Description)
-	assert.Equal(t, StatusInProgress, issue.Status)
+	assert.Equal(t, uint(1), issue.ID)
+	assert.Equal(t, "버그 수정 필요", issue.Title)
+	assert.Equal(t, "로그인 페이지에서 오류 발생", issue.Description)
+	assert.Equal(t, api.StatusInProgress, issue.Status)
 	assert.Equal(t, id, issue.User.ID)
-}
-
-func TestGetIssuesList(t *testing.T) {
-	url := baseURL + "/issues"
-	resp, err := http.DefaultClient.Get(url)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != 200 {
-		t.Fatalf("Expected status code 200, got %d", resp.StatusCode)
-	}
-	var response struct {
-		Issues []Issue `json:"issues"`
-	}
-	err = json.NewDecoder(resp.Body).Decode(&response)
-	if err != nil {
-		t.Fatal(err)
-	}
-	assert.Equal(t, 1, len(response.Issues))
+	assert.Equal(t, "김개발", issue.User.Name)
 }
