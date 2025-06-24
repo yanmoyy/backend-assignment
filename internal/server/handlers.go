@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -80,35 +81,58 @@ func HandelrGetIssue(w http.ResponseWriter, r *http.Request) {
 }
 
 func HandlerUpdateIssue(w http.ResponseWriter, r *http.Request) {
-	// idString := r.PathValue("id")
-	// id, err := strconv.ParseUint(idString, 10, 64)
-	// if err != nil {
-	// 	respondWithError(w, http.StatusBadRequest, "Invalid issue ID", err)
-	// 	return
-	// }
-	// issue := getIssueByID(uint(id))
-	// if issue == nil {
-	// 	respondWithError(w, http.StatusNotFound, "Issue not found", nil)
-	// 	return
-	// }
-	// decoder := json.NewDecoder(r.Body)
-	// var p UpdateIssueParmas
-	// err = decoder.Decode(&p)
-	// if err != nil {
-	// 	respondWithError(w, http.StatusBadRequest, "Invalid request body", err)
-	// 	return
-	// }
-	// if p.Title != "" {
-	// 	issue.Title = p.Title
-	// }
-	// if p.Description != "" {
-	// 	issue.Description = p.Description
-	// }
-	// if p.Status != "" {
-	// 	issue.Status = p.Status
-	// }
-	// if p.UserId != nil {
-	// 	issue.User = getUserByID(*p.UserId)
-	// }
-	// respondWithJSON(w, http.StatusOK, issue)
+	idString := r.PathValue("id")
+	id, err := strconv.Atoi(idString)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Invalid issue ID", err)
+		return
+	}
+	var p api.UpdateIssueParams
+	decoder := json.NewDecoder(r.Body)
+	err = decoder.Decode(&p)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Invalid request body", err)
+		return
+	}
+	issue, ok := db.GetIssueByID(id)
+	if !ok {
+		respondWithError(w, http.StatusNotFound, "Issue not found", nil)
+		return
+	}
+	issue, err = updateIssue(p, issue)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, err.Error(), err)
+		return
+	}
+	db.SetIssueByID(id, issue)
+	respondWithJSON(w, http.StatusOK, issue)
+}
+
+func updateIssue(p api.UpdateIssueParams, issue api.Issue) (api.Issue, error) {
+	if issue.Status == api.StatusCompleted || issue.Status == api.StatusCancelled {
+		return issue, fmt.Errorf("cannot update current issue")
+	}
+	if p.Title != "" {
+		issue.Title = p.Title
+	}
+	if p.Description != "" {
+		issue.Description = p.Description
+	}
+	if p.Status != "" {
+		if p.UserId == nil && p.Status != api.StatusPending && p.Status != api.StatusCancelled {
+			return issue, fmt.Errorf("need to specify userId")
+		}
+		issue.Status = p.Status
+	} else {
+		if issue.Status == api.StatusPending && p.UserId != nil {
+			issue.Status = api.StatusInProgress
+		} else if issue.User != nil && p.UserId == nil {
+			issue.Status = api.StatusPending
+		}
+	}
+	if p.UserId != nil {
+		issue.User = db.GetUserByID(*p.UserId)
+	}
+	issue.UpdatedAt = time.Now()
+	return issue, nil
 }

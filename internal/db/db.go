@@ -24,14 +24,22 @@ func GetNextIssueID() uint {
 	return uint(len(issues) + 1) // #nosec G115
 }
 
-// #nosec G115
 func GetIssueByID(id int) (api.Issue, bool) {
-	for _, issue := range issues {
+	for _, issue := range issues { // #nosec G115
 		if issue.ID == uint(id) {
 			return issue, true
 		}
 	}
 	return api.Issue{}, false
+}
+
+func SetIssueByID(id int, issue api.Issue) {
+	for i, oldIssue := range issues { // #nosec G115
+		if oldIssue.ID == uint(id) {
+			issues[i] = issue
+			return
+		}
+	}
 }
 
 func AddIssue(issue api.Issue) {
