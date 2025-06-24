@@ -48,3 +48,23 @@ func TestCreateIssue(t *testing.T) {
 	assert.Equal(t, StatusInProgress, issue.Status)
 	assert.Equal(t, id, issue.User.ID)
 }
+
+func TestGetIssuesList(t *testing.T) {
+	url := baseURL + "/issues"
+	resp, err := http.DefaultClient.Get(url)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		t.Fatalf("Expected status code 200, got %d", resp.StatusCode)
+	}
+	var response struct {
+		Issues []Issue `json:"issues"`
+	}
+	err = json.NewDecoder(resp.Body).Decode(&response)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert.Equal(t, 1, len(response.Issues))
+}

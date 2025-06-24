@@ -2,8 +2,8 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -29,6 +29,25 @@ func getNextIssueID() uint {
 	return uint(len(issues) + 1) // #nosec G115
 }
 
+func getIssueByID(id uint) *Issue {
+	for _, issue := range issues {
+		if issue.ID == id {
+			return &issue
+		}
+	}
+	return nil
+}
+
+func filterIssuesByStatus(issues []Issue, status string) []Issue {
+	filteredIssues := []Issue{}
+	for _, issue := range issues {
+		if issue.Status == status {
+			filteredIssues = append(filteredIssues, issue)
+		}
+	}
+	return filteredIssues
+}
+
 type CreateIssueParmas struct {
 	Title       string `json:"title"`       // required
 	Description string `json:"description"` // optional
@@ -36,7 +55,6 @@ type CreateIssueParmas struct {
 }
 
 func handlerCreateIssue(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("Create issue")
 	decoder := json.NewDecoder(r.Body)
 	var p CreateIssueParmas
 	err := decoder.Decode(&p)
@@ -72,9 +90,68 @@ func handlerCreateIssue(w http.ResponseWriter, r *http.Request) {
 }
 
 func handlerGetIssuesList(w http.ResponseWriter, r *http.Request) {
+	// filter by status
+	q := r.URL.Query()
+	status := q.Get("status")
+	var newIssues []Issue
+	if status == "" {
+		newIssues = issues
+	} else {
+		newIssues = filterIssuesByStatus(issues, status)
+	}
+	type response struct {
+		Issues []Issue `json:"issues"`
+	}
+	respondWithJSON(w, http.StatusOK, response{
+		Issues: newIssues,
+	})
 }
 
 func handelrGetIssue(w http.ResponseWriter, r *http.Request) {
+	idString := r.PathValue("id")
+	id, err := strconv.ParseUint(idString, 10, 64)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Invalid issue ID", err)
+		return
+	}
+	issue := getIssueByID(uint(id))
+	if issue == nil {
+		respondWithError(w, http.StatusNotFound, "Issue not found", nil)
+		return
+	}
+	respondWithJSON(w, http.StatusOK, issue)
 }
+
 func handlerUpdateIssue(w http.ResponseWriter, r *http.Request) {
+	// idString := r.PathValue("id")
+	// id, err := strconv.ParseUint(idString, 10, 64)
+	// if err != nil {
+	// 	respondWithError(w, http.StatusBadRequest, "Invalid issue ID", err)
+	// 	return
+	// }
+	// issue := getIssueByID(uint(id))
+	// if issue == nil {
+	// 	respondWithError(w, http.StatusNotFound, "Issue not found", nil)
+	// 	return
+	// }
+	// decoder := json.NewDecoder(r.Body)
+	// var p UpdateIssueParmas
+	// err = decoder.Decode(&p)
+	// if err != nil {
+	// 	respondWithError(w, http.StatusBadRequest, "Invalid request body", err)
+	// 	return
+	// }
+	// if p.Title != "" {
+	// 	issue.Title = p.Title
+	// }
+	// if p.Description != "" {
+	// 	issue.Description = p.Description
+	// }
+	// if p.Status != "" {
+	// 	issue.Status = p.Status
+	// }
+	// if p.UserId != nil {
+	// 	issue.User = getUserByID(*p.UserId)
+	// }
+	// respondWithJSON(w, http.StatusOK, issue)
 }
