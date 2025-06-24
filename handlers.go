@@ -7,16 +7,16 @@ import (
 	"time"
 
 	"github.com/yanmoyy/backend-assignment/internal/api"
-	"github.com/yanmoyy/backend-assignment/internal/client"
+	"github.com/yanmoyy/backend-assignment/internal/db"
 )
 
 func handlerReset(w http.ResponseWriter, r *http.Request) {
-	clearIssues()
+	db.ClearIssues()
 }
 
 func handlerCreateIssue(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
-	var p client.CreateIssueParams
+	var p api.CreateIssueParams
 	err := decoder.Decode(&p)
 	if err != nil {
 		respondWithError(w, http.StatusBadRequest, "Invalid request body", err)
@@ -30,14 +30,14 @@ func handlerCreateIssue(w http.ResponseWriter, r *http.Request) {
 	var user *api.User
 	if p.UserId != nil {
 		status = api.StatusInProgress
-		user = getUserByID(*p.UserId)
+		user = db.GetUserByID(*p.UserId)
 		if user == nil { // not found
 			respondWithError(w, http.StatusBadRequest, "User not found", nil)
 			return
 		}
 	}
 	issue := api.Issue{
-		ID:          getNextIssueID(),
+		ID:          db.GetNextIssueID(),
 		Title:       p.Title,
 		Description: p.Description,
 		Status:      status,
@@ -45,7 +45,7 @@ func handlerCreateIssue(w http.ResponseWriter, r *http.Request) {
 		CreatedAt:   time.Now(),
 		UpdatedAt:   time.Now(),
 	}
-	issues = append(issues, issue)
+	db.AddIssue(issue)
 	respondWithJSON(w, http.StatusCreated, issue)
 }
 
@@ -55,27 +55,24 @@ func handlerGetIssuesList(w http.ResponseWriter, r *http.Request) {
 	status := q.Get("status")
 	var newIssues []api.Issue
 	if status == "" {
-		newIssues = issues
+		newIssues = db.GetIssuesAll()
 	} else {
-		newIssues = filterIssuesByStatus(issues, status)
+		newIssues = db.GetIssuesFilteredByStatus(status)
 	}
-	type response struct {
-		Issues []api.Issue `json:"issues"`
-	}
-	respondWithJSON(w, http.StatusOK, response{
+	respondWithJSON(w, http.StatusOK, api.GetIssuesResponse{
 		Issues: newIssues,
 	})
 }
 
 func handelrGetIssue(w http.ResponseWriter, r *http.Request) {
 	idString := r.PathValue("id")
-	id, err := strconv.ParseUint(idString, 10, 64)
+	id, err := strconv.Atoi(idString)
 	if err != nil {
 		respondWithError(w, http.StatusBadRequest, "Invalid issue ID", err)
 		return
 	}
-	issue := getIssueByID(uint(id))
-	if issue == nil {
+	issue, ok := db.GetIssueByID(id)
+	if !ok {
 		respondWithError(w, http.StatusNotFound, "Issue not found", nil)
 		return
 	}

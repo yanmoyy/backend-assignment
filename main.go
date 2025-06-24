@@ -15,8 +15,8 @@ func main() {
 	// post request /issue
 	http.HandleFunc("POST /issue", handlerCreateIssue)
 	http.HandleFunc("GET /issues", handlerGetIssuesList)
-	http.HandleFunc("GET /issue:id", handelrGetIssue)
-	http.HandleFunc("PATCH /issue:id", handlerUpdateIssue)
+	http.HandleFunc("GET /issue/{id}", handelrGetIssue)
+	http.HandleFunc("PATCH /issue/{id}", handlerUpdateIssue)
 
 	// reset
 	http.HandleFunc("POST /reset", handlerReset)
