@@ -16,3 +16,10 @@ type Issue struct {
 	CreatedAt   time.Time `json:"createdAt"`
 	UpdatedAt   time.Time `json:"updatedAt"`
 }
+
+const (
+	StatusPending    = "PENDING"
+	StatusInProgress = "IN_PROGRESS"
+	StatusCompleted  = "COMPLETED"
+	StatusCancelled  = "CANCELLED"
+)
